@@ -1,0 +1,9 @@
+{"slug": "slug",
+"ios":[
+  {"primary": "http://..."},
+  {"fallback": "http://..."}]
+,
+"android":[
+  {"primary": "http://..."},
+  {"fallback": "http://..."}],
+"web": "http://..."}
