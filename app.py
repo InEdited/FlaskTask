@@ -100,7 +100,7 @@ def index():
         return jsonify(response)
 
 
-@app.route('/shortlinks/<slug>', methods=('PUT'))
+@app.route('/shortlinks/<slug>', methods=('PUT',))
 def update_url(slug):
     #print("request platform: " + request.user_agent.platform)
 
@@ -109,9 +109,24 @@ def update_url(slug):
     db = client.urls
     collection = db[DB_COLLECTION]
     content = request.get_json(force=True)
-    
-    collection.update_one({"slug":slug},)
+    #print(slug)
+    #print(content)
+    #print(content['ios'][0]['primary'])
+    #This is messy because of the way the data scheme is but oh well too lazy to think of a better way
+    if content['ios']:
+        if content['ios'][0]['primary']:
+            print(collection.find_one({"ios.primary":content['ios'][0]['primary']}))
 
+            collection.find_one_and_update({"slug":slug},{'$set':{"ios.$[].primary":content['ios'][0]['primary']},}})
+        else:
+            collection.update_one({"slug":slug},{"ios.$[].fallback":content['ios'][0]['fallback']})
+    elif content['android']:
+        if content['android'][0]['primary']:
+            collection.update_one({"slug":slug},{"android.$[].primary":content['android'][0]['primary']})
+        else:
+            collection.update_one({"slug":slug},{"android.$[].fallback":content['android'][0]['fallback']})
+    elif content['web']:
+        collection.update_one({"slug":slug},{"web":content['web']})
         
 
 
