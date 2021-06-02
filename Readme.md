@@ -2,7 +2,8 @@
 ---
 Appgain backend position technical task
 ===
-The API is running on heroku at https://flashorter.herokuapp.com/
+The API is deployed and running on heroku at https://flashorter.herokuapp.com/
+The Database is a free tier test Database running on Mlab
 
 running API:
 - /shortlinks (GET,POST)
