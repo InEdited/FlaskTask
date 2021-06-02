@@ -16,7 +16,7 @@ data_model = {"slug": "slug",
 '''
 
 #very unnecessary but could be used to refactor in a better way if I had time
-class url():
+class Url():
     slug = ""
     ios_primary = ""
     ios_secondary = ""
@@ -58,20 +58,21 @@ def index():
         client = pymongo.MongoClient(DB_LINK)
         db = client.urls
         collection = db[DB_COLLECTION]
-        
-        #print(request.is_json)
+        if not request.is_json:
+             return jsonify({"msg": "Missing JSON in request"}), 400
         content = request.get_json(force=True)
         #print(content)
         slug = content['slug']
         ios = content['ios']
         android = content['android']
         web = content['web']
-        print(ios[0]['primary'])
+
+        #I'm aware this isn't entirely guaranteed to be unique cuz it's a slice of a hash but the chances of getting 8 digit hash collision through strings is basically zero
         if not slug:
             slug = hashlib.sha1((web+ios[0]['primary']+android[0]['primary']).encode("utf-8")).hexdigest()[:8]
             print("generated slug: " + str(slug))
 
-        newurl = url()
+        newurl = Url()
         newurl.slug = slug 
         newurl.android_primary = android[0]['primary']
         newurl.android_secondary = android[1]['fallback']
@@ -85,9 +86,8 @@ def index():
         '''clean up db connection'''
         client.close()
 
-        #return render_template('index.html')
+        return newurl.getJson() , 201
 
-        return newurl.getJson()
     elif request.method == 'GET':
         '''fresh connection to db'''
         client = pymongo.MongoClient(DB_LINK)
@@ -111,27 +111,39 @@ def update_url(slug):
     db = client.urls
     collection = db[DB_COLLECTION]
     if request.method == 'PUT':
+        if not request.is_json:
+            return jsonify({"msg": "Missing JSON in request"}), 400
+        
         content = request.get_json(force=True)
+
         #This is messy because of the way the data scheme is but oh well too lazy to think of a better way
-        if content['ios']:
+        if 'ios' in content:
             if content['ios'][0]['primary']:
 
                 collection.find_one_and_update({"slug":slug},{'$set':{"ios.$[].primary":content['ios'][0]['primary']},})
             else:
-                collection.update_one({"slug":slug},{"ios.$[].fallback":content['ios'][0]['fallback']})
-        elif content['android']:
-            if content['android'][0]['primary']:
-                collection.update_one({"slug":slug},{"android.$[].primary":content['android'][0]['primary']})
+                collection.update_one({"slug":slug},{'$set':{"ios.$[].fallback":content['ios'][0]['fallback']},})
+        if 'android' in content:
+            if 'primary' in content['android']:
+                collection.update_one({"slug":slug},{'$set':{"android.$[].primary":content['android'][0]['primary']},})
+                return 201
             else:
-                collection.update_one({"slug":slug},{"android.$[].fallback":content['android'][0]['fallback']})
-        elif content['web']:
-            collection.update_one({"slug":slug},{"web":content['web']})
+                collection.update_one({"slug":slug},{'$set':{"android.$[].fallback":content['android'][0]['fallback']},})
+
+        if 'web' in content:
+            collection.update_one({"slug":slug},{'$set':{"web":content['web']},})
+        else:
+            client.close()
+            return "Bad Json request", 400
+        client.close()
+        return "Content updated" , 201
     
     #This part is an extra actual redirection to the shorted website
     else:
         request_platform = request.user_agent.platform
         print("request platform: " + request_platform)
         url = collection.find_one({"slug":slug},{'_id': 0})
+        client.close()
         if not url:
             return 'Bad slug', 400
         if request_platform == "windows":
@@ -151,4 +163,4 @@ def update_url(slug):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(  )
