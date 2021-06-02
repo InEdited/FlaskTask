@@ -117,7 +117,7 @@ def update_url(slug):
         if content['ios'][0]['primary']:
             print(collection.find_one({"ios.primary":content['ios'][0]['primary']}))
 
-            collection.find_one_and_update({"slug":slug},{'$set':{"ios.$[].primary":content['ios'][0]['primary']},}})
+            collection.find_one_and_update({"slug":slug},{'$set':{"ios.$[].primary":content['ios'][0]['primary']},})
         else:
             collection.update_one({"slug":slug},{"ios.$[].fallback":content['ios'][0]['fallback']})
     elif content['android']:
